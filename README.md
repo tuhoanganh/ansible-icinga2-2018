@@ -1,0 +1,1 @@
+# ansible-icinga2-2018
