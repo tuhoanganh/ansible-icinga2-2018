@@ -1,0 +1,10 @@
+# Install and Configure Iptables 
+# Wrote by Hoang Anh Tu
+---
+  - name: INFORMATION - Getting SSH information
+    fetch:
+      src: /tmp/info
+      dest: "{{ playbook_dir }}/host_info/{{ hostvars[inventory_hostname].prefix }}-{{ hostvars[inventory_hostname].ansible_hostname }}"
+      flat: yes
+
+

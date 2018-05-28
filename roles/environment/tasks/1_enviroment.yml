@@ -1,0 +1,136 @@
+# Wrote by Hoang Anh Tu
+---
+  - name: ENV [Step 01] - Set Hostname
+    hostname:
+      name: "{{ inventory_hostname }}"
+
+  - name: ENV [Step 02] - Configure /etc/hosts
+    template:
+      src: "{{ role_path }}/templates/hostname/hosts.j2"
+      dest: "/etc/hosts"
+
+  - name: ENV [Step 03] - Add user Admin
+    user:
+      name={{ admin_user }}
+    register: newuser
+
+  - name: ENV [Step 04] - Generate random password for Admin
+    shell: "{{ item }}"
+    with_items:
+      - echo "- SSH" >> /tmp/temp
+      - echo "User:admin" >> /tmp/temp
+      - echo "Password:" >> /tmp/temp
+      - echo $(openssl rand -hex 10)'55h' 2>&1 | tee -a /tmp/temp | passwd --stdin admin
+      - sed '3N;s/\n/ /' /tmp/temp > /tmp/info
+      - rm -rf /tmp/temp
+    when: newuser.changed
+
+  - name: ENV [Step 05] - Create Sudo File
+    file: 
+      path: /etc/sudoers.d/admin
+      state: touch
+
+  - name: ENV [Step 06] - Add Sudo Privileges to admin
+    lineinfile:
+      dest: /etc/sudoers.d/admin
+      regexp: '^admin ALL'
+      line: 'admin ALL=(ALL) NOPASSWD: ALL'
+      state: present
+
+#  - name: Disallow root SSH access
+#    lineinfile:
+#      dest=/etc/ssh/sshd_config
+#      regexp="^PermitRootLogin"
+#      line="PermitRootLogin no"
+#      state=present
+#    notify:
+#      - restart sshd
+
+  - name: ENV [Step 07] - Disallow SSH GSS API authentication
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      regexp: "^GSSAPIAuthentication"
+      line: "GSSAPIAuthentication no"
+      state: present
+      backup: yes
+    notify:
+       - Restart SSH
+
+  - name: ENV [Step 08] - Update OS
+    yum: name=* state=latest
+
+  - name: ENV [Step 09] - Install services
+    yum: 
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - wget
+      - ntp
+      - unzip
+      - rsync
+      - net-tools
+      - telnet
+      - vim
+      - screen
+      - libselinux-python
+   
+  - name: ENV [Step 10] - Configure TimeZone
+    copy:
+      src: /usr/share/zoneinfo/Asia/Ho_Chi_Minh
+      dest: /etc/localtime
+    notify: 
+      - Restart NTP
+      
+  - name: ENV [Step 11] - Create Motd
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: root
+      group: root
+    with_items:
+      - { src: "{{ role_path }}/files/motd/motd.sh", dest: "/etc/profile.d/motd.sh"  }
+      - { src: "{{ role_path }}/files/motd/motd-maint", dest: "/etc/motd-maint"  }
+
+  - name: ENV [Step 12] - Create Enviroment File
+    file: 
+      path: /etc/profile.d/env.sh 
+      state: touch
+
+  - name: ENV [Step 13] - Create Bash's Log file
+    file: 
+      path: /etc/rsyslog.d/bash.conf 
+      state: touch
+
+  - name: ENV [Step 14] - Configure Log Terminal 1
+    lineinfile: 
+      dest: "{{ item.dest }}" 
+      line: "{{ item.line }}" 
+      state: present
+    with_items:
+      - { line: "umask 002", dest: /etc/profile.d/env.sh }
+      - { line: "export export HISTTIMEFORMAT='%F %T  \'", dest: /etc/profile.d/env.sh }
+      - { line: "local6.notice /var/log/bash_log", dest: /etc/rsyslog.d/bash.conf}
+         
+  - name: ENV [Step 15] - Configure Log Terminal 2
+    lineinfile: dest=/etc/profile.d/env.sh line="export PROMPT_COMMAND='RETRN_VAL=$?;logger -p local6.notice \"$(whoami) [$$]:$(history 1 | sed \"s/^[ ]*[0-9]\+[ ]*//\" ) [$RETRN_VAL]\"'" state=present
+
+  - name: ENV [Step 16] - Disable SElinux
+    selinux:
+      state: disabled
+
+  - name: ENV [Step 17] - Disallow SElinux at next reboot
+    replace:
+      dest: /etc/selinux/config
+      regexp: "^SELINUX=enforcing"
+      replace: "SELINUX=disabled"
+      backup: yes
+
+  - name: ENV [Step 18] - Setup Crontab run check-update
+    cron:
+      name: Yum check-update
+      minute: "0"
+      hour: "0"
+      month: "*"
+      user: root
+      job: "yum check-update | tail -n +8 > /tmp/update.log"
+      state: present

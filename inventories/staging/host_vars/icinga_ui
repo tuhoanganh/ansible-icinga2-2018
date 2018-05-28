@@ -1,0 +1,13 @@
+#Variables for Node's IP
+IP: 192.168.100.10
+
+#Variables for configure thruk_local.conf.j2
+ui_node_name: ICINGA-CORE0
+ui_node_ip: 192.168.100.10
+
+all_node_information:
+  - { ip: 192.168.100.10, passwd: ABCD1234 }
+  - { ip: 192.168.100.11, passwd: ABCD1234 }
+  - { ip: 192.168.100.12, passwd: ABCD1234 }
+
+

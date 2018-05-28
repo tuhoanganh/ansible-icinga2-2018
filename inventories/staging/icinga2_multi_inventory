@@ -1,0 +1,27 @@
+[ui_node]
+icinga_ui ansible_host=192.168.100.10
+
+[normal_node]
+icinga_01 ansible_host=192.168.100.11 ui_node=off
+icinga_02 ansible_host=192.168.100.12 ui_node=off
+
+[all:vars]
+ui_node_ip = 192.168.100.10
+
+#Variables for configure NFS
+vlan = 192.168.100.0/24
+
+#Variables for configure api-users.conf
+api_name = icingaAdmin
+api_password = icingaAdmin
+
+#Variables for connect SSH
+ansible_user = root
+ansible_pass = ABCD1234
+ansible_port = 22
+
+#Variables for create new admin user
+admin_user = admin
+
+#Variables for create prefix name file information
+prefix=lab

@@ -1,0 +1,143 @@
+# Wrote by Hoang Anh Tu
+---
+  - name: DEPENDENCIES [Step 01] - Update OS
+    yum: name=* state=latest update_cache=yes
+
+  - name: DEPENDENCIES [Step 02] - Install Additional OS Tools
+    yum: 
+      name: "{{ item }}"
+      state: latest
+    with_items: 
+      - yum-utils
+      - bash-completion
+      - bind-utils
+      - net-tools
+      - telnet
+      - mailx
+      - rsync
+      - perl
+      - setools-libs
+      - libcgroup
+      - expect 
+      - tmux
+
+  - name: DEPENDENCIES [Step 03] - Install SNMP Utilities
+    yum:
+     name: "{{ item }}"
+     state: latest
+    with_items:
+      - net-snmp
+      - net-snmp-utils
+      - net-snmp-devel
+      - net-snmp-perl
+      - snmpcheck
+      - snmptt
+
+  - name: DEPENDENCIES [Step 04] - Install Perl & Python Module
+    yum: 
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - perl-Net-SNMP
+      - perl-Config-IniFiles
+      - perl-Sys-Syslog
+      - python-pip
+      - python-devel
+      - python-requests
+      - pysnmp
+      - audit-libs-python
+      - python-IPy
+      - libsemanage-python
+      - policycoreutils-python
+      - checkpolicy
+      - readline-devel
+
+  - name: DEPENDENCIES [Step 05] - Install Mariadb Dependencies
+    yum: 
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - mariadb-libs
+      - mariadb-devel
+
+  - name: DEPENDENCIES [Step 06] - Install Juniper PyEZ Dependencies
+    yum:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - libxml2-devel
+      - libxslt-devel
+      - libffi-devel
+
+  - name: DEPENDENCIES [Step 07] - Install NFS daemon & utilities
+    yum: 
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - nfs-utils
+
+  - name: DEPENDENCIES [Step 08] - Install Package Downloader
+    yum: 
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - curl
+      - wget
+
+  - name: DEPENDENCIES [Step 09] - Install Other Development Package (required by custom plugins)
+    yum: 
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - zlib-devel
+      - bzip2-devel
+      - openssl-devel
+      - ncurses-devel
+      - sqlite-devel
+      - gcc
+      - make
+      - git
+      - autoconf
+      - autogen
+      - pkgconfig
+      - libuuid-devel
+
+  - name: DEPENDENCIES [Step 10] - Install PHP dependencies
+    yum:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - php
+      - php-cli
+      - php-pear
+      - php-xmlrpc 
+      - php-xsl
+      - php-pdo
+      - php-soap
+      - php-gd
+      - php-ldap
+      - php-mbstring
+      - graphviz
+
+  - name: DEPENDENCIES [Step 11] - Install Performance data dependencies
+    yum:
+      name: "{{ item }}"
+      state: latest
+    with_items:   
+      - perl-Time-HiRes
+      - rrdtool-perl
+
+  - name: DEPENDENCIES [Step 12] - Install Postfix relay dependencies
+    yum:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - cyrus-sasl
+      - cyrus-sasl-lib
+      - cyrus-sasl-plain
+
+  - name: DEPENDENCIES [Step 13] - Install Development tools groups
+    yum:
+      name: "{{ item.package }}"
+      state: latest
+    with_items: "{{ icinga2_depencies_development_tools_groups }}"

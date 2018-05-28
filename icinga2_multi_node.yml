@@ -1,0 +1,10 @@
+---
+- hosts: all
+  roles:
+   - role: environment
+     become: yes
+     tag: environment
+
+   - role: icinga2_multi_node
+     become: yes
+     tag: icinga2

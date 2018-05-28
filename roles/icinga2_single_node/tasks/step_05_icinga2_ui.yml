@@ -1,0 +1,89 @@
+---
+# Wrote by Hoang Anh Tu
+  - stat: path=/var/tmp/git-2.9.5
+    register: git_temp_path
+
+  - name: ICINGA2-UI [STEP 01] - Download and Extract Git-2.9.5
+    command: chdir=/var/tmp/ {{ item }}
+    with_items: 
+      - wget https://www.kernel.org/pub/software/scm/git/git-2.9.5.tar.gz
+      - tar -xvzf git-2.9.5.tar.gz
+      - chmod -R 775 git-2.9.5
+    when: 
+      - git_temp_path.stat.exists == false
+
+  - name: ICINGA2-UI [STEP 02] - Compile and Install Git-2.9.5
+    command: chdir=/var/tmp/git-2.9.5 {{ item }}
+    with_items: 
+      - ./configure
+      - make
+      - make install
+    when: 
+      - git_temp_path.stat.exists == false
+
+  - stat: path=/etc/icinga2-ui
+    register: icinga2_ui_path
+
+  - name: ICINGA2-UI [STEP 03] - Creates Icinga2-ui's directory
+    file: path={{ item }} state=directory
+    with_items:
+      - /etc/icinga2-ui
+      - /etc/icinga2-ui/dist
+    when: 
+      - icinga2_ui_path.stat.exists == false
+
+  - name: ICINGA2-UI [Step 04] - Install Icinga2-ui
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: root
+      group: root
+      mode: 0775
+    with_items:
+      - { src: "{{ role_path }}/files/icinga2-ui/icinga2-ui", dest: "/etc/icinga2-ui/dist/" }
+      - { src: "{{ role_path }}/files/icinga2-ui/icinga2-ui.service", dest: "/etc/systemd/system/" }
+    when: 
+      - icinga2_ui_path.stat.exists == false
+
+  - stat: "path=/etc/icinga2-ui/demo_config"
+    register: icinga2_ui_demo_path
+
+  - name: ICINGA2-UI [Step 05] - Copy Icinga2-ui's Demo configure
+    copy: 
+      src: "{{ role_path }}/files/demo_icinga_config/"
+      dest: "/etc/icinga2-ui/demo_config"
+      owner: root
+      group: root
+      mode: 0775
+    when:
+      - icinga2_ui_demo_path.stat.exists == false
+
+  - name: ICINGA2-UI [Step 06] - Reload Systemctl
+    command: systemctl daemon-reload
+
+  - name: ICINGA2-UI [Step 07] - Startup Icinga2-ui
+    service: name=icinga2-ui
+             state=restarted
+             enabled=yes
+
+  - name: ICINGA2-UI [Step 08] - Create SSH Key (Only on UI Node)
+    expect:
+      command: ssh-keygen -t rsa -b 4096
+      responses:
+        'Overwrite': 'yes'
+        'Enter file in which to save the key': ''
+        'Enter passphrase': ''
+        'Enter same passphrase again': ''
+
+  - name: ICINGA2-UI - [Step 09] - Create Passwordless SSH to Icinga Host
+    expect:
+      command: ssh-copy-id {{ hostvars[inventory_hostname].IP }}
+      responses:
+        'continue connecting': 'yes'
+        'password': "{{ hostvars[inventory_hostname].ansible_pass }}"
+
+#  - name: ICINGA2-UI [Step 10] - Remove default host.conf file
+#    file:
+#      path: /etc/icinga2/conf.d/hosts.cnf
+#      state: absent
+#      backup: yes

@@ -1,0 +1,14 @@
+---
+# defaults file for icinga2-ansible-no-ui
+icinga2_yum:
+ - { package: "icinga2" }
+ - { package: "icinga2-selinux" }
+
+icinga2_depencies_development_tools_groups:
+ - { package: "@Development Tools" }
+
+
+
+
+
+

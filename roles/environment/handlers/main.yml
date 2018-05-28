@@ -1,0 +1,25 @@
+---
+#Handlers for Services
+  - name: Restart SSH
+    service: 
+      name: sshd
+      state: restarted
+      enabled: yes
+
+  - name: Restart Rsyslog 
+    service: 
+      name: rsyslog
+      state: restarted
+      enabled: yes
+
+  - name: Restart NTP
+    service: 
+      name: ntpd
+      state: restarted
+      enabled: yes
+
+  - name: Restart Iptables
+    service:
+      name: iptables
+      state: restarted
+      enabled: yes

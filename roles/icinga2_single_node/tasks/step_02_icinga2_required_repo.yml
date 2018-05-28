@@ -1,0 +1,29 @@
+# Wrote by Hoang Anh Tu
+---
+  - name: REQUIRED REPO [Step 01] - Install Epel Repository
+    yum: name=epel-release state=latest
+
+  - name: REQUIRED REPO [Step 02] - Install Labs Consol Repository
+    yum:
+      name: https://labs.consol.de/repo/stable/rhel7/i386/labs-consol-stable.rhel7.noarch.rpm
+      state: present
+
+  - name: REQUIRED REPO [Step 03] - Install Icinga2 Repository
+    yum:
+      name: https://packages.icinga.org/epel/7/release/noarch/icinga-rpm-release-7-1.el7.centos.noarch.rpm
+      state: present
+
+  - name: REQUIRED REPO [Step 04] - Install MariaDB Repository
+    copy:
+      src: "{{ role_path }}/files/repositories"
+      dest: "/etc/yum.repos.d/MariaDB.repo"
+
+  - name: REQUIRED REPO [Step 05] - Install InfluxDB Repository
+    copy:
+      src: "{{ role_path }}/files/repositories"
+      dest: "/etc/yum.repos.d/influxdb.repo"
+
+  - name: REQUIRED REPO [Step 06] - Install Grafana Repository
+    copy:
+      src: "{{ role_path }}/files/repositories"
+      dest: "/etc/yum.repos.d/grafana.repo"

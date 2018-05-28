@@ -1,0 +1,38 @@
+# Install and Configure Iptables 
+# Wrote by Hoang Anh Tu
+---
+  - name: IPTABLES [Step 01] - Stop Firewalld
+    service: 
+      name: firewalld 
+      state: stopped 
+      enabled: no  
+
+  - name: IPTABLES [Step 02] - Install Iptables
+    yum: 
+      name: "{{ item.service }}" 
+      state: latest
+    with_items:
+      - { service: "iptables" }
+      - { service: "iptables-services" }
+
+#  - name: IPTABLES [Step 03] - Configure Basic Iptables
+#    copy:
+#      src: "{{ item.src }}"
+#      dest: "{{ item.dest }}"
+#      owner: root
+#      group: root
+#    with_items:
+#      - { src: "{{ role_path}}/files/iptables/iptables", dest: "/etc/sysconfig/iptables"  }
+#    notify:
+#      - Restart Iptables
+
+  - name: IPTABLES [Step 03] - Add SSH Port to Firewall
+    lineinfile:
+      dest: /etc/sysconfig/iptables
+      insertbefore: '-A INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT'
+      line: '{{ item }}'
+      state: present
+    with_items:
+      - '# SSH #'
+    notify:
+      - Restart Iptables

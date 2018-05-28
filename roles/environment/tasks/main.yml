@@ -1,0 +1,6 @@
+---
+# tasks file for environment
+# Wrote by Hoang Anh Tu
+- include_tasks: step_01_enviroment.yml
+- include_tasks: step_02_enviroment_get_information.yml
+- include_tasks: step_03_enviroment_iptables.yml
