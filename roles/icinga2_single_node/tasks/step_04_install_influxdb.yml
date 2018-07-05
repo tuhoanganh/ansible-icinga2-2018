@@ -1,0 +1,35 @@
+---
+# Wrote by Hoang Anh Tu
+  - name: INFLUXDB - INSTALLATION [STEP 01] - Install InfluxDB
+    yum:
+      name: "{{ item.package }}"
+      state: latest
+    with_items: "{{ influxdb_yum }}"
+
+  - name: INFLUXDB - INSTALLATION [STEP 02] - Start InfluxDB
+    service:
+      name: influxdb
+      state: started
+      enabled: yes
+
+  - name: INFLUXDB - CONFIGURATION [Step 03] - Configure InfluxDB
+    replace:
+      dest: /etc/influxdb/influxdb.conf
+      regexp: "{{ item.old }}"
+      replace: "{{ item.new }}"
+      backup: yes
+    with_items:
+      - { old: '# access-log-path = ""', new: 'access-log-path = "/var/log/influxdb/http_logging"'}
+      - { old: '# write-tracing = false', new: 'write-tracing = true'}
+      - { old: '# level = "info"', new: 'level = "warn"'}
+    notify:
+      - Restart influxdb
+
+  - meta: flush_handlers
+
+  - name: INFLUXDB - CONFIGURATION [Step 04] - Create influxDB database and user
+    command: "{{ item }}"
+    with_items:
+      - "influx -execute 'create database {{ influxdb_database }};'"
+      - influx -execute "create user {{ influxdb_user }} with password '{{ influxdb_password }}';"
+      - "influx -execute 'grant all on {{ influxdb_database }} to {{ influxdb_user }};'"

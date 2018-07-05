@@ -7,8 +7,12 @@ icinga2_yum:
 icinga2_depencies_development_tools_groups:
  - { package: "@Development Tools" }
 
+mariadb_yum:
+  - { package: "MariaDB-server" }
+  - { package: "MariaDB-client" }
 
+influxdb_yum:
+  - { package: "influxdb" }
 
-
-
-
+grafana_yum:
+  - { package: "grafana" }

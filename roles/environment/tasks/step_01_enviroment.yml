@@ -9,32 +9,34 @@
       src: "{{ role_path }}/templates/hostname/hosts.j2"
       dest: "/etc/hosts"
 
-  - name: ENV [Step 03] - Add user Admin
+  - name: "ENV [Step 03] - Add {{ admin_user }} user" 
     user:
       name={{ admin_user }}
     register: newuser
 
-  - name: ENV [Step 04] - Generate random password for Admin
+  - name: "ENV [Step 04] - Generate random password for {{ admin_user }}"
     shell: "{{ item }}"
     with_items:
       - echo "- SSH" >> /tmp/temp
-      - echo "User:admin" >> /tmp/temp
+      - echo "User:{{ admin_user }}" >> /tmp/temp
       - echo "Password:" >> /tmp/temp
-      - echo $(openssl rand -hex 10)'55h' 2>&1 | tee -a /tmp/temp | passwd --stdin admin
+      - "echo {{ admin_password }} 2>&1 | tee -a /tmp/temp | passwd --stdin {{ admin_user }}"
       - sed '3N;s/\n/ /' /tmp/temp > /tmp/info
       - rm -rf /tmp/temp
+    args:
+      warn: False
     when: newuser.changed
 
   - name: ENV [Step 05] - Create Sudo File
-    file: 
-      path: /etc/sudoers.d/admin
+    file:
+      path: /etc/sudoers.d/users
       state: touch
 
-  - name: ENV [Step 06] - Add Sudo Privileges to admin
+  - name: "ENV [Step 06] - Add Sudo Privileges to {{ admin_user }} user"
     lineinfile:
-      dest: /etc/sudoers.d/admin
-      regexp: '^admin ALL'
-      line: 'admin ALL=(ALL) NOPASSWD: ALL'
+      dest: /etc/sudoers.d/users
+      regexp: "^{{ admin_user }} ALL"
+      line: "{{ admin_user }} ALL=(ALL) NOPASSWD: ALL"
       state: present
 
 #  - name: Disallow root SSH access
@@ -60,7 +62,7 @@
     yum: name=* state=latest
 
   - name: ENV [Step 09] - Install services
-    yum: 
+    yum:
       name: "{{ item }}"
       state: latest
     with_items:
@@ -73,14 +75,14 @@
       - vim
       - screen
       - libselinux-python
-   
+
   - name: ENV [Step 10] - Configure TimeZone
     copy:
       src: /usr/share/zoneinfo/Asia/Ho_Chi_Minh
       dest: /etc/localtime
-    notify: 
+    notify:
       - Restart NTP
-      
+
   - name: ENV [Step 11] - Create Motd
     copy:
       src: "{{ item.src }}"
@@ -92,25 +94,25 @@
       - { src: "{{ role_path }}/files/motd/motd-maint", dest: "/etc/motd-maint"  }
 
   - name: ENV [Step 12] - Create Enviroment File
-    file: 
-      path: /etc/profile.d/env.sh 
+    file:
+      path: /etc/profile.d/env.sh
       state: touch
 
   - name: ENV [Step 13] - Create Bash's Log file
-    file: 
-      path: /etc/rsyslog.d/bash.conf 
+    file:
+      path: /etc/rsyslog.d/bash.conf
       state: touch
 
   - name: ENV [Step 14] - Configure Log Terminal 1
-    lineinfile: 
-      dest: "{{ item.dest }}" 
-      line: "{{ item.line }}" 
+    lineinfile:
+      dest: "{{ item.dest }}"
+      line: "{{ item.line }}"
       state: present
     with_items:
       - { line: "umask 002", dest: /etc/profile.d/env.sh }
-      - { line: "export export HISTTIMEFORMAT='%F %T  \'", dest: /etc/profile.d/env.sh }
+      - { line: "export export HISTTIMEFORMAT='%F %T  '", dest: /etc/profile.d/env.sh }
       - { line: "local6.notice /var/log/bash_log", dest: /etc/rsyslog.d/bash.conf}
-         
+
   - name: ENV [Step 15] - Configure Log Terminal 2
     lineinfile: dest=/etc/profile.d/env.sh line="export PROMPT_COMMAND='RETRN_VAL=$?;logger -p local6.notice \"$(whoami) [$$]:$(history 1 | sed \"s/^[ ]*[0-9]\+[ ]*//\" ) [$RETRN_VAL]\"'" state=present
 
@@ -134,3 +136,16 @@
       user: root
       job: "yum check-update | tail -n +8 > /tmp/update.log"
       state: present
+
+  - name: ENV [Step 19] - set max open file 65535
+    shell: "{{ item }}"
+    with_items:
+      - "ulimit -n 65535"
+
+  - name: ENV [Step 20] - set permanent max open file 655535
+    lineinfile:
+      dest: "{{ item.dest }}"
+      line: "{{ item.line }}"
+      state: present
+    with_items:
+      - { line: "* hard nofile 655353", dest: /etc/security/limits.conf }

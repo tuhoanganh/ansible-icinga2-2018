@@ -1,0 +1,75 @@
+---
+# Wrote by Hoang Anh Tu
+  - name: GRAFANA - INSTALLATION [STEP 01] - Install Grafana
+    yum:
+      name: "{{ item.package }}"
+      state: latest
+    with_items: "{{ grafana_yum }}"
+
+  - name: GRAFANA - CONFIGURATION [Step 02] - Configure Grafana
+    replace:
+      dest: /etc/grafana/grafana.ini
+      regexp: "{{ item.old }}"
+      replace: "{{ item.new }}"
+      backup: yes
+    with_items:
+      - { old: ";root_url = http://localhost:3000", new: 'root_url = %(protocol)s://%(domain)s/grafana/'}
+      - { old: ";type = sqlite3", new: 'type = mysql'}
+      - { old: ";host = 127.0.0.1:3306", new: 'host = 127.0.0.1:3306'}
+      - { old: ";name = grafana", new: 'name = {{ grafana_database }}'}
+      - { old: ";user = root", new: 'user = {{ grafana_database_user }}'}
+      - { old: ";password =", new: 'password = {{ grafana_database_password }}'}
+      - { old: ";admin_user = admin", new: 'admin_user = {{ grafana_admin_user }}'}
+      - { old: ";admin_password = admin", new: 'admin_password = {{ grafana_admin_password }}'}
+      - { old: ";header_name = X-WEBAUTH-USER", new: 'header_name = X-WEBAUTH-USER'}
+      - { old: ";header_property = username", new: 'header_property = username'}
+
+  - name: GRAFANA - CONFIGURATION [STEP 03] - Enable Apache auth for Grafana
+    lineinfile:
+      dest: /etc/grafana/grafana.ini
+      insertafter: '[auth.proxy]'
+      line: 'enabled = true'
+      state: present
+
+  - name: GRAFANA - CONFIGURATION [STEP 04] - Enable anonymouse access
+    lineinfile:
+      dest: /etc/grafana/grafana.ini
+      insertafter: '# enable anonymous access'
+      line: 'enabled = true'
+      state: present
+    notify:
+      - Restart grafana
+
+  - meta: flush_handlers
+
+  - name: GRAFANA - CONFIGURATION [STEP 05] - Copy default organization into server
+    template:
+      src: "{{ role_path }}/templates/change_default_org.j2"
+      dest: "/tmp/change_default_org.sql"
+
+  - name: GRAFANA - CONFIGURATION [STEP 06] - Change default organization in database
+    mysql_db:
+      name: "{{ grafana_database }}"
+      login_user: root
+      login_password: "{{ mariadb_root_password }}"
+      login_host: 127.0.0.1
+      state: import
+      target: /tmp/change_default_org.sql
+
+  - name: GRAFANA - CONFIGURATION [STEP 07] - Configure organization for anonymouse access
+    lineinfile:
+      dest: /etc/grafana/grafana.ini
+      insertafter: '# specify organization name that should be used for unauthenticated users'
+      line: 'org_name = {{ organization }}'
+      state: present
+
+  - name: GRAFANA - CONFIGURATION [STEP 08] - Configure role for anonymouse access
+    lineinfile:
+      dest: /etc/grafana/grafana.ini
+      insertafter: '# specify role for unauthenticated users'
+      line: 'org_role = Viewer'
+      state: present
+    notify:
+      - Restart grafana
+
+  - meta: flush_handlers

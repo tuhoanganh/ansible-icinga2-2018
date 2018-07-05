@@ -2,9 +2,7 @@
 - hosts: icinga2_single_node
   roles:
    - role: environment
-     become: yes
      tag: environment
 
    - role: icinga2_single_node
-     become: yes
      tag: icinga2

@@ -1,12 +1,43 @@
 ---
 # handlers file for icinga2-ansible-no-ui
   - name: restart icinga2
-    service: name=icinga2
-             state=restarted
-             enabled=yes
+    service:
+      name: icinga2
+      state: restarted
+      enabled: yes
 
   - name: Restart Iptables
     service:
       name: iptables
+      state: restarted
+      enabled: yes
+
+  - name: Restart influxdb
+    service:
+      name: influxdb
+      state: restarted
+      enabled: yes
+
+  - name: Restart mariadb
+    service:
+      name: mariadb
+      state: restarted
+      enabled: yes
+
+  - name: Restart grafana
+    service:
+      name: grafana-server
+      state: restarted
+      enabled: yes
+
+  - name: Restart http
+    service:
+      name: httpd
+      state: restarted
+      enabled: yes
+
+  - name: Restart thruk
+    service:
+      name: thruk
       state: restarted
       enabled: yes

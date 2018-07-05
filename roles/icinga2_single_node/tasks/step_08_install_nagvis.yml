@@ -1,0 +1,90 @@
+---
+# Wrote by Hoang Anh Tu
+  - stat: path=/var/tmp/nagvis-1.9.4
+    register: nagvis_temp_path
+
+  - name: NAGVIS - INSTALLATION [Step 01] - Download and Extract Nagvis-Map
+    command: chdir=/var/tmp/ {{ item }}
+    with_items:
+      - wget http://www.nagvis.org/share/nagvis-1.9.4.tar.gz
+      - tar -xvf nagvis-1.9.4.tar.gz
+      - chmod -R 775 nagvis-1.9.4
+    args:
+      warn: false
+    when:
+      - nagvis_temp_path.stat.exists == false
+
+  - name: NAGVIS - CONFIGURATION [Step 02] - Install Nagvis  (installing new configuration)
+    expect:
+      chdir: /var/tmp/nagvis-1.9.4
+      command: ./install.sh
+      responses:
+        'Do you want to proceed?': 'y'
+        'Please enter the path to the nagios base directory': '/etc/icinga2'
+        'Please enter the path to NagVis base': '/usr/share/nagvis'
+        'Do you want to use backend mklivestatus': 'y'
+        'Do you want to use backend ndo2db': 'n'
+        'Do you want to use backend ido2db': 'n'
+        'Please enter the web path to NagVis': '/nagvis'
+        'Please enter the name of the web-server user': 'apache'
+        'Please enter the name of the web-server group': 'apache'
+        'create Apache config file': 'y'
+        'Do you really want to continue': 'y'
+    when:
+      - nagvis_temp_path.stat.exists == false
+
+  - name: NAGVIS - CONFIGURATION [Step 02] - Install Nagvis (updating existed configuration)
+    expect:
+      chdir: /var/tmp/nagvis-1.9.4
+      command: ./install.sh
+      responses:
+        'Do you want to proceed?': 'y'
+        'Please enter the path to the nagios base directory': '/etc/icinga2'
+        'Please enter the path to NagVis base': '/usr/share/nagvis'
+        'Do you want to update the backend configuration?': 'y'
+        'Do you want to use backend mklivestatus': 'y'
+        'Do you want to use backend ndo2db': 'n'
+        'Do you want to use backend ido2db': 'n'
+        'Please enter the web path to NagVis': '/nagvis'
+        'Please enter the name of the web-server user': 'apache'
+        'Please enter the name of the web-server group': 'apache'
+        'create Apache config file': 'y'
+        'Do you want the installer to update your config files when possible?': 'y'
+        'Remove backup directory after successful installation?': 'y'
+        'Do you really want to continue': 'y'
+    when:
+      - nagvis_temp_path.stat.exists == true
+
+  - name: NAGVIS - CONFIGURATION [STEP 03] - Config nagvis.ini.php file
+    template:
+      src: "{{ role_path }}/templates/nagvis.ini.php.j2"
+      dest: "/usr/share/nagvis/etc/nagvis.ini.php"
+      owner: root
+      group: root
+      backup: yes
+    notify:
+      - Restart http
+
+  - meta: flush_handlers
+
+  - name: NAGVIS - CONFIGURATION [STEP 04] - Add auth.db file to nagvis
+    copy:
+      src: "{{ role_path }}/files/nagvis/auth.db"
+      dest: "/usr/share/nagvis/etc/auth.db"
+      owner: apache
+      group: apache
+      mode: 0775
+
+  - name: NAGVIS - CONFIGURATION [STEP 05] - Add nagvis-make-admin file
+    copy:
+      src: "/var/tmp/nagvis-1.9.4/nagvis-make-admin"
+      dest: "/usr/share/nagvis/etc/nagvis-make-admin"
+      remote_src: yes
+      owner: apache
+      group: apache
+      mode: 0775
+
+  - name: NAGVIS - CONFIGURATION [Step 06] - Grant admin's privileges to thrukadmin
+    command: chdir=/usr/share/nagvis/etc/ {{ item }}
+    with_items:
+      - ./nagvis-make-admin thrukadmin

@@ -5,14 +5,16 @@
 ############################################
 
 <Component Thruk::Backend>
-  <peer>
-    name   	= {{ hostvars[inventory_hostname].backend_name }}
-    id      	= d857d
-    type    	= livestatus
-    <options>
-      peer 	= {{ hostvars[inventory_hostname].backend_ip }}:6558
-    </options>
-  </peer>
+  {% for host in groups['all'] %}
+    <peer>
+      name    	= {{ hostvars[host].backend_name }}
+      id      	= {{ hostvars[host].thruk_id }}
+      type    	= livestatus
+      <options>
+         peer 	= {{ hostvars[host].backend_ip }}:6558
+      </options>
+    </peer>
+  {% endfor %}
 </Component>
 
 <configtool>

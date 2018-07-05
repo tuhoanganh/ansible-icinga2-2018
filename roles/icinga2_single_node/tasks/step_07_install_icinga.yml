@@ -1,0 +1,153 @@
+---
+# Wrote by Hoang Anh Tu
+  - stat: path=/var/tmp/monitoring-plugins-2.2
+    register: monitoring_plugins
+
+  - name: POSTFIX - INSTALLATION [Step 01] - Install Postfix
+    yum:
+      name: postfix
+      state: latest
+
+  - name: POSTFIX - INSTALLATION [Step 02] - Start Postfix
+    service:
+      name: postfix
+      state: started
+      enabled: yes
+
+  - name: ICINGA2 - INSTALLATION [STEP 03] - Install Icinga2
+    yum: name={{ item.package }}
+         state=latest
+    with_items: "{{ icinga2_yum }}"
+
+  - name: ICINGA2 - INSTALLATION [STEP 04] - Start Icinga2
+    service: name=icinga2
+             state=started
+             enabled=yes
+
+  - name: ICINGA2 - INSTALLATION [STEP 05] - Download and Extract Monitoring Plugins
+    command: chdir=/var/tmp/ {{ item }}
+    with_items:
+      - wget https://www.monitoring-plugins.org/download/monitoring-plugins-2.2.tar.gz
+      - tar -xvf monitoring-plugins-2.2.tar.gz
+      - chmod -R 775 monitoring-plugins-2.2
+    args:
+      warn: False
+    when: monitoring_plugins.stat.exists == false
+
+  - name: ICINGA2 - INSTALLATION [STEP 06] - Creates Icinga2's Plugin directory
+    file: path=/usr/share/icinga2/plugins
+          state=directory
+
+  - name: ICINGA2 - INSTALLATION [STEP 07] - Install Monitoring Plugins
+    command: chdir=/var/tmp/monitoring-plugins-2.2 {{ item }}
+    with_items:
+      - ./configure --with-cgiurl=/thruk/cgi-bin --prefix=/usr/share/icinga2/plugins
+      - make install
+      - make installcheck
+
+  - name: ICINGA2 - INSTALLATION [STEP 08] - Change owner and permission /usr/share/icinga2/plugins
+    command: "{{ item }}"
+    with_items:
+      - chmod 775 /usr/share/icinga2/plugins
+      - chown icinga:icinga /usr/share/icinga2/plugins
+    args:
+      warn: False
+
+  - name: ICINGA2 - INSTALLATION [STEP 09] - Copy SVTECH's custom plugin
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: icinga
+      group: icinga
+      mode: 0775
+    with_items:
+      - { src: "{{ role_path }}/files/custom_plugins/dist", dest: "/usr/share/icinga2/plugins/libexec/" }
+      - { src: "{{ role_path }}/files/custom_plugins/check_snmp_text_oid_wrapper", dest: "/usr/share/icinga2/plugins/libexec/" }
+      - { src: "{{ role_path }}/files/custom_plugins/check_mem.pl", dest: "/usr/share/icinga2/plugins/libexec/" }
+      - { src: "{{ role_path }}/files/custom_plugins/check_snmp_environment.pl", dest: "/usr/share/icinga2/plugins/libexec/" }
+
+  - name: ICINGA2 - INSTALLATION [STEP 10] - Create temp folder
+    file:
+      path: /mnt/tmpfs/
+      state: directory
+      mode: 0777
+
+  - name: ICINGA2 - INSTALLATION [STEP 11] - Change owner and permission /usr/share/icinga2/plugins
+    command: "{{ item }}"
+    with_items:
+      - chmod 775 /usr/share/icinga2/plugins
+      - chown icinga:icinga /usr/share/icinga2/plugins
+    args:
+      warn: False
+
+  - name: ICINGA2 - CONFIGURATION [Step 12] - Enable Icinga2 Feature
+    command: icinga2 feature enable {{ item }}
+    with_items:
+      - api
+      - command
+      - compatlog
+      - livestatus
+      - perfdata
+      - statusdata
+      - syslog
+      - influxdb
+
+  - pip:
+      name: pexpect
+
+  - name: ICINGA2 - CONFIGURATION [Step 13] - Congifure API via the node wizard
+    expect:
+      command: icinga2 node wizard
+      timeout: 300
+      responses:
+        'mPlease specify if this is a satellite/client setup': 'n'
+        'Please specify the common name': ''
+        'Bind Host': ''
+        'Bind Port': '5665'
+
+  - name: ICINGA2 - CONFIGURATION [Step 14] - API setup
+    command: icinga2 api setup
+
+  - name: ICINGA2 - CONFIGURATION [Step 15] - Configure Icinga2's Constant file
+    replace:
+      dest: /etc/icinga2/constants.conf
+      regexp: "{{ item.old }}"
+      replace: "{{ item.new }}"
+      backup: yes
+    with_items:
+      - { old: '^const PluginDir = "/usr/lib64/nagios/plugins"', new: 'const PluginDir = "/usr/share/icinga2/plugins/libexec"' }
+      - { old: '^const PluginContribDir = "/usr/lib64/nagios/plugins"', new: 'const PluginContribDir = "/usr/share/icinga2/plugins/libexec"' }
+
+  - name: ICINGA2 - CONFIGURATION [Step 16] - Configure Icinga2's Livestatus
+    template:
+      src: "{{ role_path }}/templates/livestatus.conf.j2"
+      dest: "/etc/icinga2/features-enabled/livestatus.conf"
+      backup: yes
+
+  - name: ICINGA2 - CONFIGURATION [Step 17] - Configure Icinga2's Api User
+    template:
+      src: "{{ role_path }}/templates/api-users.conf.j2"
+      dest: "/etc/icinga2/conf.d/api-users.conf"
+      backup: yes
+
+  - name: ICINGA2 - CONFIGURATION [STEP 18] - Config Icinga2's services.conf, templates.conf, hosts.conf file
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: icinga
+      group: icinga
+      mode: 0775
+    with_items:
+      - { src: "{{ role_path }}/files/icinga2_config/services.conf", dest: "/etc/icinga2/conf.d/services.conf" }
+      - { src: "{{ role_path }}/files/icinga2_config/templates.conf", dest: "/etc/icinga2/conf.d/templates.conf" }
+      - { src: "{{ role_path }}/files/icinga2_config/hosts.conf", dest: "/etc/icinga2/conf.d/hosts.conf" }
+
+  - name: ICINGA2 - CONFIGURATION [Step 19] - Configure influxdb feature
+    template:
+      src: "{{ role_path }}/templates/influxdb.conf.j2"
+      dest: "/etc/icinga2/features-enabled/influxdb.conf"
+      backup: yes
+
+  - name: ICINGA2 - CONFIGURATION [STEP 20] - Restart icinga2
+    service: name=icinga2
+             state=restarted

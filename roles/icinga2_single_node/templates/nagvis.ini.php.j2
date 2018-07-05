@@ -23,7 +23,7 @@ file_group="apache"
 ;
 ; Defines the authentication module to use. By default NagVis uses the built-in
 ; SQLite authentication module. On delivery there is no other authentication
-; module available. It is possible to add own authentication modules for 
+; module available. It is possible to add own authentication modules for
 ; supporting other authorisation mechanisms. For details take a look at the
 ; documentation.
 ;authmodule="CoreAuthModSQLite"
@@ -117,7 +117,7 @@ file_group="apache"
 ;   mechanism like all previous NagVis versions used it before. This way the user
 ;   is not really authenticated with NagVis. NagVis trusts the provided username
 ;   implicitly. NagVis uses the configured environment variable to identify the
-;   user. You can add several authentication mechanisms to your webserver, 
+;   user. You can add several authentication mechanisms to your webserver,
 ;   starting from the basic authentication used by Nagios (.htaccess) to single
 ;   sign-on environments.
 ;   Simply set logonmodule to "LogonEnv", put the environment variable to use as
@@ -139,9 +139,9 @@ file_group="apache"
 ;     logon_multisite_createuser="1"
 ;     logon_multisite_createrole="Guests"
 ;
-;logonmodule="LogonMixed"
-;logonenvvar="REMOTE_USER"
-;logonenvcreateuser="1"
+logonmodule="LogonEnv"
+logonenvvar="REMOTE_USER"
+logonenvcreateuser="1"
 ;logonenvcreaterole="Guests"
 ;
 ; Enable/Disable access to permitted monitoring objects only. This is useful if you want
@@ -165,14 +165,14 @@ file_group="apache"
 ; Some user information is stored in sessions which are identified by session
 ; cookies placed on the users computer. The options below set the properties
 ; of the session cookie.
-; Domain to set the cookie for. By default NagVis tries to auto-detect this 
+; Domain to set the cookie for. By default NagVis tries to auto-detect this
 ; options value by using the webserver's environment variables.
 ;sesscookiedomain="auto-detect"
-; Absolute web path to set the cookie for. This defaults to configured 
+; Absolute web path to set the cookie for. This defaults to configured
 ; paths/htmlbase option
 ;sesscookiepath="/nagvis"
 ; Lifetime of the NagVis session cookie in seconds. The default value is set to
-; 24 hours. The NagVis session cookie contents will be renewed on every page 
+; 24 hours. The NagVis session cookie contents will be renewed on every page
 ; visit. If a session is idle for more time than configured here it will become
 ; invalid.
 ;sesscookieduration="86400"
@@ -219,7 +219,9 @@ htmlcgi="/thruk/cgi-bin"
 
 ; Default values which get inherited to the maps and its objects
 [defaults]
-backend={{ hostvars[inventory_hostname].backend_name }}
+{% for host in groups['all'] %}
+backend={{ hostvars[host].backend_name }}
+{% endfor %}
 
 ; default backend (id of the default backend)
 ;backend="live_1"
@@ -393,13 +395,13 @@ backend={{ hostvars[inventory_hostname].backend_name }}
 backendtype="mklivestatus"
 ; The status host can be used to prevent annoying timeouts when a backend is not
 ; reachable. This is only useful in multi backend setups.
-; 
+;
 ; It works as follows: The assumption is that there is a "local" backend which
 ; monitors the host of the "remote" backend. When the remote backend host is
 ; reported as UP the backend is queried as normal.
 ; When the remote backend host is reported as "DOWN" or "UNREACHABLE" NagVis won't
 ; try to connect to the backend anymore until the backend host gets available again.
-; 
+;
 ; The statushost needs to be given in the following format:
 ;   "<backend_id>:<hostname>" -> e.g. "live_2:nagios"
 ;statushost=""
@@ -412,13 +414,13 @@ socket="unix:/var/run/icinga2/cmd/livestatus"
 backendtype="ndomy"
 ; The status host can be used to prevent annoying timeouts when a backend is not
 ; reachable. This is only useful in multi backend setups.
-; 
+;
 ; It works as follows: The assumption is that there is a "local" backend which
 ; monitors the host of the "remote" backend. When the remote backend host is
 ; reported as UP the backend is queried as normal.
 ; When the remote backend host is reported as "DOWN" or "UNREACHABLE" NagVis won't
 ; try to connect to the backend anymore until the backend host gets available again.
-; 
+;
 ; The statushost needs to be given in the following format:
 ;   "<backend_id>:<hostname>" -> e.g. "live_2:nagios"
 ;statushost=""
@@ -441,9 +443,12 @@ backendtype="ndomy"
 ; path to the cgi-bin of this backend
 ;htmlcgi="/nagios/cgi-bin"
 
-[backend_{{ hostvars[inventory_hostname].backend_name }}]
+{% for host in groups['all'] %}
+[backend_{{ hostvars[host].backend_name }}]
 backendtype="mklivestatus"
-socket="tcp:{{ hostvars[inventory_hostname].backend_ip }}:6558"
+socket="tcp:{{ hostvars[host].backend_ip }}:6558"
+{% endfor %}
+
 
 ; ----------------------------
 ; Rotation pool definitions
@@ -478,7 +483,7 @@ interval=15
 ; on the clients which have a listed operating system running.
 
 ; Adds the action "connect via rdp" to service/host objects where the host object
-; has the string "win" in the TAGS Nagios custom macro. 
+; has the string "win" in the TAGS Nagios custom macro.
 ; When clicking on the link, NagVis generates a .rdp file which contains makes
 ; the client connect to the given host via RDP.
 ;[action_rdp]
@@ -539,7 +544,7 @@ interval=15
 ; a critical state will cover a warning state and an acknowledged critical
 ; state will not cover a warning state.
 ;
-; These options are being used when calculating the summary state of the map 
+; These options are being used when calculating the summary state of the map
 ; objects. The default values should fit most needs.
 ;
 ;down=10

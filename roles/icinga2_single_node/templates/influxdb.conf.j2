@@ -1,0 +1,37 @@
+/**
+ * The InfluxdbWriter type writes check result metrics and
+ * performance data to an InfluxDB HTTP API
+ */
+
+library "perfdata"
+
+{% for host in groups['all'] %}
+object InfluxdbWriter "{{ host }}" {
+  host = "{{ hostvars[host].backend_ip }}"
+  port = 8086
+  database = "{{ influxdb_database }}"
+  username = "juniper"
+  password = "juniper@123"
+  host_template = {
+    measurement = "$host.check_command$"
+    tags = {
+      hostname = "$host.name$"
+      address = "$host.address$"
+      device_type = "$host.vars.device_type$"
+      state = "$host.state$"
+      state_type = "$host.state_type$"
+    }
+  }
+  service_template = {
+    measurement = "$service.check_command$"
+    tags = {
+      hostname = "$host.name$"
+      service = "$service.name$"
+      service_type = "$service.vars.service_type$"
+      state = "$service.state$"
+      state_type = "$service.state_type$"
+    }
+  }
+  enable_send_thresholds = true
+}
+{% endfor %}

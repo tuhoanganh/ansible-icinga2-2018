@@ -1,0 +1,95 @@
+---
+# Wrote by Hoang Anh Tu
+  - name: MARIADB - INSTALLATION [STEP 01] - Install MariaDB
+    yum:
+      name: "{{ item.package }}"
+      state: latest
+    with_items: "{{ mariadb_yum }}"
+
+  - name: MARIADB - INSTALLATION [STEP 02] - Start MariaDB
+    service:
+      name: mariadb
+      state: started
+      enabled: yes
+
+  - name: MARIADB - CONFIGURATION [STEP 03] - Creating MySQL Log Directory
+    file:
+      path: /var/log/mysql
+      state: directory
+      owner: mysql
+      group: mysql
+      mode: 0775
+
+  - name: MARIADB - CONFIGURATION [Step 04] - Configure MariaDB Service
+    template:
+      src: "{{ role_path }}/templates/mariadb.conf.j2"
+      dest: "/etc/my.cnf.d/server.cnf"
+      backup: yes
+    notify:
+      - Restart mariadb
+
+  - meta: flush_handlers
+
+  - name: MARIADB - CONFIGURATION [Step 05] - Check Database Root's password
+    command: mysqladmin -uroot status
+    ignore_errors: yes
+    register: check_root_password
+    failed_when: false
+    args:
+      warn: false
+
+  - name: MARIADB - CONFIGURATION [Step 06] - Create Database Schema for grafana service
+    mysql_db:
+      name: "{{ grafana_database }}"
+      state: present
+    when:
+      - check_root_password.rc == 0
+
+  - name: MARIADB - CONFIGURATION [Step 07] - Create Database User for grafana service
+    mysql_user:
+      name: "{{ grafana_database_user }}"
+      password: "{{ grafana_database_password }}"
+      priv: "{{ grafana_database }}.*:ALL"
+      host: 127.0.0.1
+      state: present
+    when:
+      - check_root_password.rc == 0
+
+  - name: MARIADB - CONFIGURATION [Step 08] - delete anonymous Database server user
+    mysql_user:
+      login_user: root
+      login_password: ''
+      check_implicit_admin: yes
+      user: ""
+      host: "{{ item }}"
+      state: "absent"
+    with_items:
+      - ""
+      - localhost
+    when:
+      - check_root_password.rc == 0
+
+  - name: MARIADB - CONFIGURATION [Step 09] - Set databse root password on first run
+    mysql_user:
+      name: root
+      host: "{{ item }}"
+      password: "{{ mariadb_root_password }}"
+      priv: '*.*:ALL,GRANT'
+      login_user: root
+      login_password: ""
+      state: present
+    with_items:
+      - 127.0.0.1
+      - ::1
+      - localhost
+    when:
+      - check_root_password.rc == 0
+
+  - name: MARIADB - CONFIGURATION [Step 10] - Remove the MySQL test database
+    mysql_db:
+      login_user: root
+      login_password: "{{ mariadb_root_password }}"
+      db: test
+      state: absent
+    when:
+      - check_root_password.rc == 0

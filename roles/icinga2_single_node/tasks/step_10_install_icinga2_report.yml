@@ -1,0 +1,39 @@
+---
+# Wrote by Hoang Anh Tu
+  - stat: path=/etc/icinga2-report
+    register: icinga2_ui_path
+
+  - name: ICINGA2-REPORT [STEP 01] - Creates ICINGA2-REPORT's directory
+    file: path={{ item }} state=directory
+    with_items:
+      - /etc/icinga2-report
+    when:
+      - icinga2_ui_path.stat.exists == false
+
+  - name: ICINGA2-REPORT [Step 02] - Install ICINGA2-REPORT
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: root
+      group: root
+      mode: 0775
+    with_items:
+      - { src: "{{ role_path }}/files/icinga2_report/icinga2-report-datasource", dest: "/var/lib/grafana/plugins/" }
+      - { src: "{{ role_path }}/files/icinga2_report/icinga2-report-panel", dest: "/var/lib/grafana/plugins/" }
+      - { src: "{{ role_path }}/files/icinga2_report/icinga2-report", dest: "/etc/icinga2-report" }
+      - { src: "{{ role_path }}/files/icinga2_report/icinga2-report.service", dest: "/etc/systemd/system/icinga2-report.service" }
+    when:
+      - icinga2_ui_path.stat.exists == false
+
+  - name: ICINGA2-REPORT [Step 03] - Reload Systemctl
+    command: systemctl daemon-reload
+
+  - name: ICINGA2-REPORT [Step 04] - Startup ICINGA2-REPORT
+    service: name=icinga2-report
+             state=restarted
+             enabled=yes
+
+  - name: ICINGA2-REPORT [Step 05] - Startup Grafana
+    service: name=grafana-server
+             state=restarted
+             enabled=yes

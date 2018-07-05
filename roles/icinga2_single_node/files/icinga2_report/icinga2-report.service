@@ -1,0 +1,12 @@
+[Unit]
+Description=icinga2-report Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/etc/icinga2-report/icinga2-report --port=8888
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

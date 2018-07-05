@@ -1,0 +1,52 @@
+[icinga2_single_node]
+NMS ansible_host=10.98.0.145 IP=10.98.0.145 backend_name=ICINGA-BACKEND-0 backend_ip=10.98.0.145 thruk_id=svtech01
+
+[all:vars]
+icinga2_ui_user = icinga2-ui
+icinga2_ui_user_password = icinga2-ui@123
+
+##########################################
+# Variables for configure api-users.conf #
+##########################################
+api_user = icingaAdmin
+api_password = icingaAdmin
+
+##################################
+# Variables for passwordless SSH #
+##################################
+ansible_port = 22
+ansible_user = root
+ansible_pass = juniper@123
+
+########################
+# Variable for mariadb #
+########################
+mariadb_root_password = juniper@123
+
+########################
+# Variable for grafana #
+########################
+grafana_database = grafana
+grafana_database_user = grafana
+grafana_database_password = grafana
+grafana_admin_user = thrukadmin
+grafana_admin_password = thrukadmin
+organization = btc
+
+#########################
+# Variable for Influxdb #
+#########################
+influxdb_database = btc_nms
+influxdb_user = juniper
+influxdb_password = juniper@123
+
+###########################################
+# Variables for create new SSH admin user #
+###########################################
+admin_user = juniper
+admin_password = juniper@123
+
+#####################################################
+# Variables for create prefix name file information #
+#####################################################
+prefix=production

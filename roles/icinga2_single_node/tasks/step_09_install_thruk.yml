@@ -1,0 +1,86 @@
+---
+# Wrote by Hoang Anh Tu
+  - name: THRUK - INSTALLATION [Step 01] - Install Thruk
+    yum:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - httpd
+      - thruk
+
+  - name: THRUK - INSTALLATION [Step 02] - Startup HTTP and Thruk
+    service:
+      name: "{{ item }}"
+      state: started
+      enabled: yes
+    with_items:
+      - httpd
+      - thruk
+
+  - name: THRUK - CONFIGURATION [STEP 03] - Open full permission to Thruk Cache and Library
+    command: "{{ item }}"
+    with_items:
+      - chmod -R 777 /var/cache/thruk
+      - chmod -R 777 /var/lib/thruk
+      - usermod -a -G icingacmd apache
+    args:
+      warn: false
+
+  - name: THRUK - CONFIGURATION [Step 04] - Configure Thruk
+    template:
+      src: "{{ role_path }}/templates/thruk_local.conf.j2"
+      dest: "/etc/thruk/thruk_local.conf"
+      backup: yes
+
+  - name: HTTP - CONFIGURATION [STEP 05] - Start Apache
+    service: name=httpd
+             state=started
+             enabled=yes
+
+  - name: THRUK - CONFIGURATION [STEP 06] - Start Thruk
+    service: name=thruk
+             state=started
+             enabled=yes
+
+  - name: THRUK - CONFIGURATION [STEP 07] - Config menu.conf file
+    lineinfile:
+      dest: /usr/share/thruk/menu.conf
+      insertbefore: "add_section('name' => 'Current Status');"
+      line: '{{ item }}'
+      state: present
+      backup: yes
+    with_items:
+      - "  add_section('name' => 'Nagvis-Map');"
+      - "  add_link('name' => \"Nagvis-Map\", 'href' => '/nagvis/frontend/nagvis-js/index.php');"
+
+  - name: THRUK - CONFIGURATION [STEP 08] - Open full permission to Thruk config directory
+    file:
+      path: /etc/thruk
+      state: directory
+      owner: apache
+      group: apache
+
+  - name: HTTP - CONFIGURATION [STEP 09] - Config Nagvis's virtualhost file
+    lineinfile:
+      dest: /etc/httpd/conf.d/nagvis.conf
+      insertbefore: '# To enable Nagios basic auth on NagVis use the following options'
+      line: '{{ item }}'
+      state: present
+      backup: yes
+    with_items:
+      - '  AuthName "Thruk Monitoring"'
+      - '  AuthType Basic'
+      - '  AuthUserFile /etc/thruk/htpasswd'
+      - '  Require valid-user'
+      - '  SetEnv REMOTE_USER thrukadmin'
+
+  - name: HTTP - COFIGURATION [STEP 10] - Config proxy.conf file
+    template:
+      src: "{{ role_path }}/templates/proxy.conf.j2"
+      dest: "/etc/httpd/conf.d/proxy.conf"
+      backup: yes
+    notify:
+      - Restart http
+      - Restart thruk
+
+  - meta: flush_handlers

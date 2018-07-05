@@ -1,8 +1,13 @@
 ---
 # tasks file for icinga2
-- include_tasks: step_01_icinga2_iptables.yml
-- include_tasks: step_02_icinga2_required_repo.yml
-- include_tasks: step_03_icinga2_dependencies.yml
-- include_tasks: step_04_icinga2_install.yml
-- include_tasks: step_05_icinga2_ui.yml
-
+- include: step_01_iptables.yml
+- include: step_02_required_repo.yml
+- include: step_03_dependencies.yml
+- include: step_04_install_influxdb.yml
+- include: step_05_install_mariadb.yml
+- include: step_06_install_grafana.yml
+- include: step_07_install_icinga.yml
+- include: step_08_install_nagvis.yml
+- include: step_09_install_thruk.yml
+- include: step_10_install_icinga2_report.yml
+- include: step_11_install_icinga2_ui.yml

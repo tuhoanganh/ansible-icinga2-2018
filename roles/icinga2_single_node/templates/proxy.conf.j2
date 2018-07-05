@@ -1,0 +1,9 @@
+<Location "/report">
+        RequestHeader set Host "http://{{ hostvars[inventory_hostname].IP }}/report"
+        ProxyPass "http://127.0.0.1:8888" connectiontimeout=600 timeout=600 Keepalive=On
+</Location>
+
+<Location "/grafana">
+        RequestHeader set Host "http://{{ hostvars[inventory_hostname].IP }}/grafana"
+        ProxyPass "http://127.0.0.1:3000"
+</Location>
